@@ -325,6 +325,12 @@ def main():
                         continue
 
                     file_path = os.path.join(input, filename)
+
+                    # Prefer xml over other formats
+                    owx_path = file_path[:file_path.rindex(".")] + ".owx"
+                    if file_path != owx_path and os.path.exists(owx_path):
+                        continue
+
                     r = analyse_file(file_path)
                     if output_mode == "aggregate":
                         aggregate += r
