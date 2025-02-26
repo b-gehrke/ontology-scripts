@@ -14,6 +14,131 @@ from pyhornedowl import open_ontology_from_file
 from pyhornedowl.model import *
 
 
+def to_ms(value: Union[
+    ClassExpression, ObjectPropertyExpression, DataProperty, AnnotationProperty, Component, Variable, Atom]) -> str:
+
+    if any(isinstance(value, t) for t in [ObjectProperty, DataProperty, AnnotationProperty, Class, Variable]):
+        return str(value.first)
+
+    if isinstance(value, InverseObjectProperty):
+        return f"not {to_ms(value.first)}"
+
+
+    # Class expressions
+    if isinstance(value, ObjectIntersectionOf):
+        return f"({' and '.join(to_ms(v) for v in value.first)})"
+    if isinstance(value, ObjectUnionOf):
+        return f"({' or '.join(to_ms(v) for v in value.first)})"
+    if isinstance(value, ObjectComplementOf):
+        return f"not ({to_ms(value.first)})"
+    if isinstance(value, ObjectSomeValuesFrom):
+        return f"({to_ms(value.ope)} some {to_ms(value.bce)})"
+    if isinstance(value, ObjectAllValuesFrom):
+        return f"({to_ms(value.ope)} only {to_ms(value.bce)})"
+    if isinstance(value, ObjectHasSelf):
+        return f"({to_ms(value.first)} Self)"
+    if isinstance(value, ObjectMinCardinality):
+        return f"({to_ms(value.ope)} min {value.n} {to_ms(value.bce)})"
+    if isinstance(value, ObjectMaxCardinality):
+        return f"({to_ms(value.ope)} max {value.n} {to_ms(value.bce)})"
+    if isinstance(value, ObjectExactCardinality):
+        return f"({to_ms(value.ope)} exactly {value.n} {to_ms(value.bce)})"
+    if isinstance(value, DataSomeValuesFrom):
+        return f"({value.dp} some {value.dr})"
+    if isinstance(value, DataAllValuesFrom):
+        return f"({value.dp} only {value.dr})"
+    if isinstance(value, DataMinCardinality):
+        return f"({value.dp} min {value.n} {value.dr})"
+    if isinstance(value, DataMaxCardinality):
+        return f"({value.dp} max {value.n} {value.dr})"
+    if isinstance(value, DataExactCardinality):
+        return f"({value.dp} exactly {value.n} {value.dr})"
+    if isinstance(value, DataHasValue):
+        return f"({value.dp} value {value.l})"
+
+
+    # Rule atoms
+    if isinstance(value, BuiltInAtom):
+        return f"{value.pred}({', '.join(to_ms(v) for v in value.args)})"
+    if isinstance(value, ClassAtom):
+        return f"{to_ms(value.pred)}({to_ms(value.arg)})"
+    if isinstance(value, DataPropertyAtom):
+        return f"{value.pred}({', '.join(to_ms(v) for v in value.args)})"
+    if isinstance(value, DifferentIndividualsAtom):
+        return f"DifferentIndividuals({to_ms(value.first)}, {to_ms(value.second)})"
+    if isinstance(value, ObjectPropertyAtom):
+        return f"{value.pred}({', '.join(to_ms(v) for v in value.args)})"
+    if isinstance(value, SameIndividualAtom):
+        return f"SameIndividual({to_ms(value.first)}, {to_ms(value.second)})"
+
+    # Components
+    if isinstance(value, SubClassOf):
+        return f"Class: {to_ms(value.sub)} SubClassOf: {to_ms(value.sup)}"
+    if isinstance(value, EquivalentClasses):
+        return f"EquivalentClasses: {', '.join(to_ms(v) for v in value.first)}"
+    if isinstance(value, DisjointClasses):
+        return f"DisjointClasses: {', '.join(to_ms(v) for v in value.first)}"
+    if isinstance(value, DisjointUnion):
+        return f"Class: {to_ms(value.first)} DisjointUnionOf: {', '.join(to_ms(v) for v in value.second)}"
+    if isinstance(value, SubObjectPropertyOf):
+        if isinstance(value.sub, ObjectPropertyExpression):
+            return f"ObjectProperty: {to_ms(value.sub)} SubPropertyOf: {to_ms(value.sup)}"
+        else:
+            return f"ObjectProperty: {to_ms(value.sup)} SubPropertyChain: {' o '.join(to_ms(v) for v in value.sub)}"
+    if isinstance(value, EquivalentObjectProperties):
+        return f"EquivalentProperties: {', '.join(to_ms(v) for v in value.first)}"
+    if isinstance(value, DisjointObjectProperties):
+        return f"DisjointProperties: {', '.join(to_ms(v) for v in value.first)}"
+    if isinstance(value, InverseObjectProperties):
+        return f"ObjectProperty: {to_ms(value.first)} InverseOf: {to_ms(value.second)}"
+    if isinstance(value, ObjectPropertyDomain):
+        return f"ObjectProperty: {to_ms(value.ope)} Domain: {to_ms(value.ce)}"
+    if isinstance(value, ObjectPropertyRange):
+        return f"ObjectProperty: {to_ms(value.ope)} Range: {to_ms(value.ce)}"
+    if isinstance(value, FunctionalObjectProperty):
+        return f"ObjectProperty: {to_ms(value.first)} Characteristics: Functional"
+    if isinstance(value, InverseFunctionalObjectProperty):
+        return f"ObjectProperty: {to_ms(value.first)} Characteristics: InverseFunctional"
+    if isinstance(value, ReflexiveObjectProperty):
+        return f"ObjectProperty: {to_ms(value.first)} Characteristics: Reflexive"
+    if isinstance(value, IrreflexiveObjectProperty):
+        return f"ObjectProperty: {to_ms(value.first)} Characteristics: Irreflexive"
+    if isinstance(value, SymmetricObjectProperty):
+        return f"ObjectProperty: {to_ms(value.first)} Characteristics: Symmetric"
+    if isinstance(value, AsymmetricObjectProperty):
+        return f"ObjectProperty: {to_ms(value.first)} Characteristics: Asymmetric"
+    if isinstance(value, TransitiveObjectProperty):
+        return f"ObjectProperty: {to_ms(value.first)} Characteristics: Transitive"
+    if isinstance(value, SubDataPropertyOf):
+        return f"DataProperty: {to_ms(value.sub)} SubPropertyOf: {to_ms(value.sup)}"
+    if isinstance(value, EquivalentDataProperties):
+        return f"EquivalentProperties: {', '.join(to_ms(v) for v in value.first)}"
+    if isinstance(value, DisjointDataProperties):
+        return f"DisjointProperties: {', '.join(to_ms(v) for v in value.first)}"
+    if isinstance(value, DataPropertyDomain):
+        return f"DataProperty: {to_ms(value.dp)} Domain: {to_ms(value.ce)}"
+    if isinstance(value, DataPropertyRange):
+        return f"DataProperty: {to_ms(value.dp)} Range: {value.dr}"
+    if isinstance(value, FunctionalDataProperty):
+        return f"DataProperty: {to_ms(value.first)} Characteristics: Functional"
+    if isinstance(value, HasKey):
+        return f"Class: {to_ms(value.ce)} HasKey: {', '.join(to_ms(v) for v in value.vpe)}"
+    if isinstance(value, SubAnnotationPropertyOf):
+        return f"AnnotationProperty: {to_ms(value.sub)} SubPropertyOf: {to_ms(value.sup)}"
+    if isinstance(value, AnnotationPropertyDomain):
+        return f"AnnotationProperty: {to_ms(value.ap)} Domain: {value.iri}"
+    if isinstance(value, AnnotationPropertyRange):
+        return f"AnnotationProperty: {to_ms(value.ap)} Range: {value.iri}"
+    if isinstance(value, Rule):
+        return f"Rule: {' and '.join(to_ms(v) for v in value.head)} -> {' and '.join(to_ms(v) for v in value.body)}"
+
+    logging.error(f"Unknown component: {value}")
+    return str(value)
+
+
+
+
+
 def ignore(value: Union[Individual, ClassExpression, Component, Atom]) -> bool:
     # Individuals
     if isinstance(value, Individual):
@@ -351,7 +476,7 @@ def main():
 
 def _save_result(filename, r, writer):
     for k, v in sorted(r.items(), key=lambda x: x[1], reverse=True):
-        writer.writerow([filename, k, v])
+        writer.writerow([filename, to_ms(k), v])
 
 
 if __name__ == "__main__":
