@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import argparse
 import csv
 import logging
@@ -317,9 +319,9 @@ def main():
         writer = csv.writer(f)
         writer.writerow(["File", "Pattern", "Count"])
 
+        aggregate: Counter[Component] = Counter()
         for input in inputs:
             if os.path.isdir(input):
-                aggregate: Counter[Component] = Counter()
                 for filename in os.listdir(input):
                     if not any(filename.endswith(ext) for ext in [".owl", ".rdf", ".owx", ".omn", "ofn"]):
                         continue
@@ -331,21 +333,24 @@ def main():
                     if file_path != owx_path and os.path.exists(owx_path):
                         continue
 
-                    r = analyse_file(file_path)
+                    result = analyse_file(file_path)
                     if output_mode == "aggregate":
-                        aggregate += r
+                        aggregate += result
                     else:
-                        _save_result(filename, r, writer)
-
-                if output_mode == "aggregate":
-                    _save_result(input, aggregate, writer)
+                        _save_result(filename, result, writer)
             else:
                 result = analyse_file(input)
-                _save_result(input, result, writer)
+                if output_mode == "aggregate":
+                    aggregate += result
+                else:
+                    _save_result(input, result, writer)
+
+        if output_mode == "aggregate":
+            _save_result(input if len(inputs) == 1 else "", aggregate, writer)
 
 
 def _save_result(filename, r, writer):
-    for k, v in r.items():
+    for k, v in sorted(r.items(), key=lambda x: x[1], reverse=True):
         writer.writerow([filename, k, v])
 
 
